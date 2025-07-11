@@ -3,6 +3,7 @@
 import typer
 from typing import Optional
 from rich.console import Console
+from rich.prompt import Confirm
 
 from habits_tracker.core.services.habit_service import (
     HabitService, 
@@ -173,9 +174,8 @@ def remove_habit(
         
         # Confirmation prompt
         if not force:
-            confirm = typer.confirm(
-                f"Archive habit '[bold]{name}[/bold]'? (tracking data will be preserved)"
-            )
+            console.print(f"Archive habit '[bold]{name}[/bold]'? (tracking data will be preserved)")
+            confirm = Confirm.ask("Continue?", default=False)
             if not confirm:
                 console.print("Operation cancelled.")
                 return
