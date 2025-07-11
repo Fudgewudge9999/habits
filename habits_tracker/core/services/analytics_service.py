@@ -4,12 +4,187 @@ from datetime import date, timedelta
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
-from ..models import TrackingEntry
+from ..models import Habit, TrackingEntry
+from ..database import get_session
 from ...utils.date_utils import get_today
 
 
 class AnalyticsService:
     """Service for calculating habit analytics and statistics."""
+    
+    @classmethod
+    def calculate_habit_stats(
+        cls,
+        habit_name: str,
+        period: str = "all"
+    ) -> Dict[str, Any]:
+        """Calculate comprehensive statistics for a habit.
+        
+        Args:
+            habit_name: Name of the habit
+            period: Time period ('week', 'month', 'year', 'all')
+            
+        Returns:
+            Dictionary with habit statistics
+        """
+        with get_session() as session:
+            # Find the habit
+            habit = session.query(Habit).filter(
+                Habit.name == habit_name
+            ).first()
+            
+            if not habit:
+                return {
+                    "success": False,
+                    "error": f"Habit '{habit_name}' not found"
+                }
+            
+            # Get date range based on period
+            today = get_today()
+            start_date = None
+            
+            if period == "week":
+                start_date = today - timedelta(days=7)
+            elif period == "month":
+                start_date = today - timedelta(days=30)
+            elif period == "year":
+                start_date = today - timedelta(days=365)
+            
+            # Get tracking entries
+            query = session.query(TrackingEntry).filter(
+                TrackingEntry.habit_id == habit.id,
+                TrackingEntry.completed == True
+            )
+            
+            if start_date:
+                query = query.filter(TrackingEntry.date >= start_date)
+            
+            entries = query.order_by(TrackingEntry.date).all()
+            
+            # Calculate statistics
+            total_completions = len(entries)
+            current_streak = cls._calculate_current_streak(entries)
+            longest_streak = cls._calculate_longest_streak(entries)
+            
+            # Calculate completion rate for the period
+            if period != "all" and start_date:
+                total_days = (today - start_date).days + 1
+                completion_rate = (total_completions / total_days * 100) if total_days > 0 else 0
+            else:
+                # For "all" period, calculate based on habit creation date
+                habit_days = (today - habit.created_at.date()).days + 1
+                completion_rate = (total_completions / habit_days * 100) if habit_days > 0 else 0
+            
+            return {
+                "success": True,
+                "habit_name": habit_name,
+                "period": period,
+                "statistics": {
+                    "total_completions": total_completions,
+                    "current_streak": current_streak,
+                    "longest_streak": longest_streak,
+                    "completion_rate": round(completion_rate, 1),
+                    "created_at": habit.created_at.date(),
+                    "is_active": habit.active
+                },
+                "recent_entries": [
+                    {
+                        "date": entry.date,
+                        "notes": entry.notes
+                    }
+                    for entry in entries[-10:]  # Last 10 entries
+                ]
+            }
+    
+    @classmethod
+    def calculate_overall_stats(cls, period: str = "all") -> Dict[str, Any]:
+        """Calculate overall statistics across all habits.
+        
+        Args:
+            period: Time period ('week', 'month', 'year', 'all')
+            
+        Returns:
+            Dictionary with overall statistics
+        """
+        with get_session() as session:
+            # Get all habits
+            habits = session.query(Habit).all()
+            
+            if not habits:
+                return {
+                    "success": True,
+                    "period": period,
+                    "habits": [],
+                    "summary": {
+                        "total_habits": 0,
+                        "active_habits": 0,
+                        "total_completions": 0,
+                        "average_completion_rate": 0
+                    }
+                }
+            
+            # Get date range
+            today = get_today()
+            start_date = None
+            
+            if period == "week":
+                start_date = today - timedelta(days=7)
+            elif period == "month":
+                start_date = today - timedelta(days=30)
+            elif period == "year":
+                start_date = today - timedelta(days=365)
+            
+            habit_stats = []
+            total_completions = 0
+            completion_rates = []
+            
+            for habit in habits:
+                # Get entries for this habit
+                query = session.query(TrackingEntry).filter(
+                    TrackingEntry.habit_id == habit.id,
+                    TrackingEntry.completed == True
+                )
+                
+                if start_date:
+                    query = query.filter(TrackingEntry.date >= start_date)
+                
+                entries = query.all()
+                completions = len(entries)
+                total_completions += completions
+                
+                # Calculate completion rate
+                if period != "all" and start_date:
+                    total_days = (today - start_date).days + 1
+                    rate = (completions / total_days * 100) if total_days > 0 else 0
+                else:
+                    habit_days = (today - habit.created_at.date()).days + 1
+                    rate = (completions / habit_days * 100) if habit_days > 0 else 0
+                
+                completion_rates.append(rate)
+                current_streak = cls._calculate_current_streak(entries)
+                
+                habit_stats.append({
+                    "name": habit.name,
+                    "active": habit.active,
+                    "completions": completions,
+                    "completion_rate": round(rate, 1),
+                    "current_streak": current_streak
+                })
+            
+            active_habits = len([h for h in habits if h.active])
+            avg_completion_rate = (sum(completion_rates) / len(completion_rates)) if completion_rates else 0
+            
+            return {
+                "success": True,
+                "period": period,
+                "habits": habit_stats,
+                "summary": {
+                    "total_habits": len(habits),
+                    "active_habits": active_habits,
+                    "total_completions": total_completions,
+                    "average_completion_rate": round(avg_completion_rate, 1)
+                }
+            }
     
     @classmethod
     def _calculate_current_streak(cls, entries: List[TrackingEntry]) -> int:

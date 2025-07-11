@@ -78,6 +78,13 @@ from .commands.habits import (
     restore_habit
 )
 
+# Import tracking commands
+from .commands.tracking import (
+    track_habit,
+    untrack_habit,
+    show_today
+)
+
 # Add habit management commands directly to main app
 app.command("add")(add_habit)
 app.command("list")(list_habits)
@@ -85,25 +92,13 @@ app.command("remove")(remove_habit)
 app.command("delete")(delete_habit)
 app.command("restore")(restore_habit)
 
-
-# Placeholder commands for tracking and analytics (will be implemented in Phase 1B/1C)
-@app.command()
-def track(
-    habit_name: str = typer.Argument(..., help="Name of the habit to track"),
-    date: str = typer.Option("", "--date", "-d", help="Date to track (YYYY-MM-DD, defaults to today)"),
-    note: str = typer.Option("", "--note", "-n", help="Optional note about the tracking"),
-):
-    """Track completion of a habit."""
-    console.print(f"[yellow]Track command not yet implemented - coming in Phase 1B[/yellow]")
-    console.print(f"Would track: {habit_name}")
+# Add tracking commands
+app.command("track")(track_habit)
+app.command("untrack")(untrack_habit)
+app.command("today")(show_today)
 
 
-@app.command()
-def today():
-    """Show today's habits and their completion status."""
-    console.print("[yellow]Today command not yet implemented - coming in Phase 1B[/yellow]")
-
-
+# Placeholder command for analytics (will be implemented in Phase 1C)
 @app.command()
 def stats(
     habit_name: str = typer.Option("", "--habit", "-h", help="Show stats for specific habit"),

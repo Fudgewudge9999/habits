@@ -111,6 +111,51 @@ habits_tracker/
 - **Implementation Plan:** `TECHNICAL_IMPLEMENTATION_PLAN.md`
 - **This Context:** `CLAUDE.md`
 
+## 🛠️ Development Lessons Learned
+
+### Critical Issues & Solutions from Phase 0-1A
+
+#### 1. **Database Session Management**
+- **Issue**: Never use `next(generator())` for context managers - causes integrity check failures
+- **Solution**: Always use `@contextmanager` decorator with explicit try/finally cleanup
+- **Code Pattern**: 
+  ```python
+  @contextmanager
+  def get_session():
+      session = SessionLocal()
+      try:
+          yield session
+      finally:
+          session.close()
+  ```
+
+#### 2. **macOS Development Environment**
+- **Issue**: macOS Python environments are externally managed (PEP 668)
+- **Solution**: Always use virtual environments: `python3 -m venv venv && source venv/bin/activate`
+- **Testing**: Use `source venv/bin/activate` in separate terminals for testing
+
+#### 3. **CLI Architecture Decisions**
+- **Issue**: Nested vs flat command structure affects user experience
+- **Solution**: Use flat structure (`habits add`) not nested (`habits habits add`)
+- **Implementation**: Import functions directly and use `app.command("name")(function)`
+
+#### 4. **Database Integrity Checks**
+- **Issue**: Overly aggressive integrity checks cause unnecessary reinitializations
+- **Solution**: Check for table existence AND connectivity, not just simple queries
+- **Pattern**: Verify required tables exist before running test queries
+
+#### 5. **Error Messages & UX**
+- **Always** provide helpful error messages with suggested solutions
+- **Always** add confirmation prompts for destructive operations
+- **Always** show next-step suggestions after successful operations
+
+### Testing Checklist
+- [ ] Database persists between CLI sessions (no reinitializations)
+- [ ] All commands work without Python tracebacks
+- [ ] Rich formatting displays correctly
+- [ ] Validation errors are clear and helpful
+- [ ] Virtual environment setup works on fresh terminal
+
 ## 💡 Development Notes
 - This is Phase 1 MVP development focused on core functionality
 - Future phases will add advanced analytics, import/export, and notifications
