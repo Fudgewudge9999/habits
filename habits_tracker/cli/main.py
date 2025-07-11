@@ -85,6 +85,11 @@ from .commands.tracking import (
     show_today
 )
 
+# Import analytics commands
+from .commands.analytics import (
+    show_stats
+)
+
 # Add habit management commands directly to main app
 app.command("add")(add_habit)
 app.command("list")(list_habits)
@@ -97,15 +102,8 @@ app.command("track")(track_habit)
 app.command("untrack")(untrack_habit)
 app.command("today")(show_today)
 
-
-# Placeholder command for analytics (will be implemented in Phase 1C)
-@app.command()
-def stats(
-    habit_name: str = typer.Option("", "--habit", "-h", help="Show stats for specific habit"),
-    period: str = typer.Option("all", "--period", "-p", help="Time period (week, month, year, all)"),
-):
-    """Show habit statistics and analytics."""
-    console.print("[yellow]Stats command not yet implemented - coming in Phase 1C[/yellow]")
+# Add analytics commands
+app.command("stats")(show_stats)
 
 
 if __name__ == "__main__":

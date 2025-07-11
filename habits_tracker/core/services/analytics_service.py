@@ -3,6 +3,7 @@
 from datetime import date, timedelta
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func, and_
 
 from ..models import Habit, TrackingEntry
 from ..database import get_session
@@ -139,8 +140,8 @@ class AnalyticsService:
             completion_rates = []
             
             for habit in habits:
-                # Get entries for this habit
-                query = session.query(TrackingEntry).filter(
+                # Use count query for better performance
+                query = session.query(func.count(TrackingEntry.id)).filter(
                     TrackingEntry.habit_id == habit.id,
                     TrackingEntry.completed == True
                 )
@@ -148,8 +149,7 @@ class AnalyticsService:
                 if start_date:
                     query = query.filter(TrackingEntry.date >= start_date)
                 
-                entries = query.all()
-                completions = len(entries)
+                completions = query.scalar() or 0
                 total_completions += completions
                 
                 # Calculate completion rate
@@ -161,7 +161,14 @@ class AnalyticsService:
                     rate = (completions / habit_days * 100) if habit_days > 0 else 0
                 
                 completion_rates.append(rate)
-                current_streak = cls._calculate_current_streak(entries)
+                
+                # Get entries for streak calculation (only when needed)
+                streak_entries = session.query(TrackingEntry).filter(
+                    TrackingEntry.habit_id == habit.id,
+                    TrackingEntry.completed == True
+                ).order_by(TrackingEntry.date.desc()).limit(100).all()  # Limit for performance
+                
+                current_streak = cls._calculate_current_streak(streak_entries)
                 
                 habit_stats.append({
                     "name": habit.name,

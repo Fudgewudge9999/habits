@@ -67,6 +67,8 @@ class TrackingEntry(Base):
     __table_args__ = (
         UniqueConstraint('habit_id', 'date', name='uq_habit_date'),
         Index('idx_habit_date', 'habit_id', 'date'),
+        Index('idx_completed_date', 'completed', 'date'),  # For analytics queries
+        Index('idx_habit_completed', 'habit_id', 'completed'),  # For streak calculations
     )
     
     def __repr__(self) -> str:
