@@ -113,7 +113,7 @@ habits_tracker/
 
 ## 🛠️ Development Lessons Learned
 
-### Critical Issues & Solutions from Phase 0-1A
+### Critical Issues & Solutions from Phase 0-1C
 
 #### 1. **Database Session Management**
 - **Issue**: Never use `next(generator())` for context managers - causes integrity check failures
@@ -148,6 +148,42 @@ habits_tracker/
 - **Always** provide helpful error messages with suggested solutions
 - **Always** add confirmation prompts for destructive operations
 - **Always** show next-step suggestions after successful operations
+
+#### 6. **Missing Utility Dependencies (Phase 1B)**
+- **Issue**: Import errors when services assume utility functions exist but they have different names or aren't implemented
+- **Solution**: Build utilities first, then dependent services; always verify imports work
+- **Pattern**: Create wrapper functions with proper error handling when needed
+- **Code Example**: 
+  ```python
+  def parse_date(date_str: str) -> date:
+      result = parse_date_string(date_str)
+      if result is None:
+          raise ValueError(f"Unable to parse date: '{date_str}'. Use formats like 'YYYY-MM-DD', 'today', 'yesterday', or '-1d'")
+      return result
+  ```
+
+#### 7. **Performance Optimization Patterns (Phase 1C)**
+- **Issue**: Initial implementations loading all data can become slow with large datasets
+- **Solution**: Functionality first, then optimize with database indexes and query patterns
+- **Database Indexes**: Add performance indexes for common query patterns
+  ```python
+  Index('idx_completed_date', 'completed', 'date'),  # For analytics queries
+  Index('idx_habit_completed', 'habit_id', 'completed'),  # For streak calculations
+  ```
+- **Query Optimization**: Use `func.count()` instead of loading all entries when you only need counts
+- **Limits**: Add `.limit(100)` to prevent excessive data loading in streak calculations
+
+#### 8. **Date Handling Best Practices (Phase 1B)**
+- **Issue**: Complex date arithmetic with manual month/day handling is error-prone
+- **Solution**: Use `timedelta(days=1)` for simple date operations; avoid manual date boundaries
+- **Flexible Parsing**: Support multiple input formats (`today`, `yesterday`, `-1d`, `YYYY-MM-DD`) with clear errors
+- **Pattern**: Enhanced regex patterns: `r'^([+-]?\d+)d?$'` to support both `-1` and `-1d` formats
+
+#### 9. **Development Workflow Lessons**
+- **Dependencies**: Build utility functions before services that depend on them
+- **Performance**: Optimize after core functionality is proven to work
+- **Imports**: Always verify SQLAlchemy imports (`func`, `and_`) are available for advanced queries
+- **Testing**: Use flexible date parsing in testing to support various user input patterns
 
 ### Testing Checklist
 - [ ] Database persists between CLI sessions (no reinitializations)

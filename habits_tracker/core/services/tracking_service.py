@@ -8,12 +8,16 @@ from sqlalchemy.exc import IntegrityError
 from ..database import get_session
 from ..models import Habit, TrackingEntry
 from ...utils.date_utils import parse_date, get_today
+from ...utils.performance import performance_target, profile_query
+from ...utils.cache import cached, query_cache, cache_key_for_today_status, invalidate_tracking_caches
 
 
 class TrackingService:
     """Service for managing habit tracking entries."""
     
     @classmethod
+    @performance_target(50)  # 50ms target for tracking
+    @profile_query("habit_tracking")
     def track_habit(
         cls, 
         habit_name: str, 
@@ -81,6 +85,9 @@ class TrackingService:
                 session.add(entry)
                 session.commit()
                 
+                # Invalidate caches after tracking
+                invalidate_tracking_caches()
+                
                 return {
                     "success": True,
                     "habit_name": habit_name,
@@ -145,6 +152,9 @@ class TrackingService:
                 session.delete(entry)
                 session.commit()
                 
+                # Invalidate caches after untracking
+                invalidate_tracking_caches()
+                
                 return {
                     "success": True,
                     "habit_name": habit_name,
@@ -161,6 +171,9 @@ class TrackingService:
                 }
     
     @classmethod
+    @cached(query_cache, ttl=30, key_func=lambda *args, **kwargs: cache_key_for_today_status())
+    @performance_target(100)  # 100ms target for today status
+    @profile_query("today_status")
     def get_today_status(cls) -> Dict[str, Any]:
         """Get today's tracking status for all active habits.
         
@@ -234,11 +247,11 @@ class TrackingService:
         Returns:
             Current streak count
         """
-        # Get all tracking entries for this habit, ordered by date descending
+        # Get only recent entries for streak calculation (performance optimization)
         entries = session.query(TrackingEntry).filter(
             TrackingEntry.habit_id == habit_id,
             TrackingEntry.completed == True
-        ).order_by(TrackingEntry.date.desc()).all()
+        ).order_by(TrackingEntry.date.desc()).limit(30).all()  # Limit to last 30 days for performance
         
         if not entries:
             return 0

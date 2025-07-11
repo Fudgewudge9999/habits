@@ -21,16 +21,29 @@ def show_stats(
         None, 
         "--habit", 
         "-h", 
-        help="Show stats for specific habit"
+        help="Show stats for specific habit (leave blank for overall stats)"
     ),
     period: str = typer.Option(
         "all", 
         "--period", 
         "-p", 
-        help="Time period: week, month, year, all"
+        help="Time period: week (last 7 days), month (last 30 days), year (last 365 days), all (all-time)",
+        show_default=True
     )
 ) -> None:
-    """Show habit statistics and analytics."""
+    """Show detailed habit statistics and performance analytics.
+    
+    Display comprehensive statistics including streaks, completion rates,
+    and performance insights. View overall statistics for all habits or
+    focus on a specific habit's performance over different time periods.
+    
+    Examples:
+        habits stats                           # Overall stats for all habits
+        habits stats --habit "Exercise"        # Stats for specific habit
+        habits stats --period week             # Weekly overview
+        habits stats --habit "Read" --period month  # Monthly stats for reading
+        habits stats -h "Gym" -p year          # Yearly gym statistics
+    """
     
     # Validate period
     valid_periods = ["week", "month", "year", "all"]
@@ -38,7 +51,11 @@ def show_stats(
         console.print(create_error_panel(
             "Invalid Period",
             f"Period '{period}' is not valid",
-            f"Valid periods: {', '.join(valid_periods)}"
+            f"Valid periods: {', '.join(valid_periods)}\n" +
+            "• week: last 7 days\n" +
+            "• month: last 30 days\n" +
+            "• year: last 365 days\n" +
+            "• all: all-time statistics"
         ))
         raise typer.Exit(1)
     

@@ -4,9 +4,12 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import func
 
 from ..models import Habit, TrackingEntry
 from ..database import get_session
+from ...utils.performance import performance_target, profile_query
+from ...utils.cache import invalidate_habit_caches
 
 
 class HabitValidationError(Exception):
@@ -102,6 +105,8 @@ class HabitService:
         return description if description else None
     
     @classmethod
+    @performance_target(50)  # 50ms target for habit creation
+    @profile_query("habit_creation")
     def create_habit(
         cls, 
         name: str, 
@@ -155,6 +160,9 @@ class HabitService:
                 session.commit()
                 session.refresh(habit)
                 
+                # Invalidate caches after creating new habit
+                invalidate_habit_caches()
+                
                 return habit
                 
         except IntegrityError as e:
@@ -186,6 +194,8 @@ class HabitService:
             return None
     
     @classmethod
+    @performance_target(100)  # 100ms target for listing habits
+    @profile_query("habit_listing")
     def list_habits(
         cls, 
         filter_type: str = "active",
@@ -265,6 +275,10 @@ class HabitService:
                     habit.archive()
                 
                 session.commit()
+                
+                # Invalidate caches after removing habit
+                invalidate_habit_caches(name)
+                
                 return True
                 
         except SQLAlchemyError as e:
@@ -310,19 +324,31 @@ class HabitService:
         """
         from ..services.analytics_service import AnalyticsService
         
-        # Get basic tracking stats
-        entries = session.query(TrackingEntry).filter(
+        # Use count query for total completions (more efficient)
+        total_completions = session.query(func.count(TrackingEntry.id)).filter(
             TrackingEntry.habit_id == habit.id,
             TrackingEntry.completed == True
-        ).order_by(TrackingEntry.date).all()
+        ).scalar() or 0
         
-        if not entries:
+        if total_completions == 0:
             return {
                 "streak": 0,
                 "longest_streak": 0,
                 "total_completions": 0,
                 "last_tracked": None
             }
+        
+        # Get only recent entries for streak calculation (limit for performance)
+        entries = session.query(TrackingEntry).filter(
+            TrackingEntry.habit_id == habit.id,
+            TrackingEntry.completed == True
+        ).order_by(TrackingEntry.date.desc()).limit(100).all()
+        
+        # Get last tracked date efficiently
+        last_tracked = session.query(func.max(TrackingEntry.date)).filter(
+            TrackingEntry.habit_id == habit.id,
+            TrackingEntry.completed == True
+        ).scalar()
         
         # Calculate current and longest streak
         current_streak = AnalyticsService._calculate_current_streak(entries)
@@ -331,6 +357,6 @@ class HabitService:
         return {
             "streak": current_streak,
             "longest_streak": longest_streak,
-            "total_completions": len(entries),
-            "last_tracked": entries[-1].date if entries else None
+            "total_completions": total_completions,
+            "last_tracked": last_tracked
         }

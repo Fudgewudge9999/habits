@@ -8,12 +8,19 @@ from sqlalchemy import func, and_
 from ..models import Habit, TrackingEntry
 from ..database import get_session
 from ...utils.date_utils import get_today
+from ...utils.performance import performance_target, profile_query
+from ...utils.cache import (
+    cached, stats_cache, cache_key_for_habit_stats, cache_key_for_overall_stats
+)
 
 
 class AnalyticsService:
     """Service for calculating habit analytics and statistics."""
     
     @classmethod
+    @cached(stats_cache, ttl=60, key_func=lambda cls, habit_name, period="all": cache_key_for_habit_stats(habit_name, period))
+    @performance_target(150)  # Allow slightly more time for individual habit stats
+    @profile_query("habit_analytics")
     def calculate_habit_stats(
         cls,
         habit_name: str,
@@ -98,6 +105,9 @@ class AnalyticsService:
             }
     
     @classmethod
+    @cached(stats_cache, ttl=30, key_func=lambda cls, period="all": cache_key_for_overall_stats(period))  # Shorter TTL for overall stats
+    @performance_target(200)  # 200ms target for analytics (more complex)
+    @profile_query("overall_analytics")
     def calculate_overall_stats(cls, period: str = "all") -> Dict[str, Any]:
         """Calculate overall statistics across all habits.
         
@@ -135,21 +145,32 @@ class AnalyticsService:
             elif period == "year":
                 start_date = today - timedelta(days=365)
             
+            # Optimize by batching queries - get all completion counts in single query
+            from sqlalchemy import case
+            
+            habit_ids = [h.id for h in habits]
+            completion_subquery = session.query(
+                TrackingEntry.habit_id,
+                func.count(TrackingEntry.id).label('completions')
+            ).filter(
+                TrackingEntry.habit_id.in_(habit_ids),
+                TrackingEntry.completed == True
+            )
+            
+            if start_date:
+                completion_subquery = completion_subquery.filter(TrackingEntry.date >= start_date)
+            
+            completion_counts = {
+                result.habit_id: result.completions 
+                for result in completion_subquery.group_by(TrackingEntry.habit_id).all()
+            }
+            
             habit_stats = []
             total_completions = 0
             completion_rates = []
             
             for habit in habits:
-                # Use count query for better performance
-                query = session.query(func.count(TrackingEntry.id)).filter(
-                    TrackingEntry.habit_id == habit.id,
-                    TrackingEntry.completed == True
-                )
-                
-                if start_date:
-                    query = query.filter(TrackingEntry.date >= start_date)
-                
-                completions = query.scalar() or 0
+                completions = completion_counts.get(habit.id, 0)
                 total_completions += completions
                 
                 # Calculate completion rate
@@ -162,13 +183,16 @@ class AnalyticsService:
                 
                 completion_rates.append(rate)
                 
-                # Get entries for streak calculation (only when needed)
-                streak_entries = session.query(TrackingEntry).filter(
-                    TrackingEntry.habit_id == habit.id,
-                    TrackingEntry.completed == True
-                ).order_by(TrackingEntry.date.desc()).limit(100).all()  # Limit for performance
-                
-                current_streak = cls._calculate_current_streak(streak_entries)
+                # Only calculate streak if there are completions (optimization)
+                current_streak = 0
+                if completions > 0:
+                    # Get entries for streak calculation (limited for performance)
+                    streak_entries = session.query(TrackingEntry).filter(
+                        TrackingEntry.habit_id == habit.id,
+                        TrackingEntry.completed == True
+                    ).order_by(TrackingEntry.date.desc()).limit(50).all()  # Reduced limit
+                    
+                    current_streak = cls._calculate_current_streak(streak_entries)
                 
                 habit_stats.append({
                     "name": habit.name,

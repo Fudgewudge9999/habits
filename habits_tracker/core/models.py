@@ -69,6 +69,8 @@ class TrackingEntry(Base):
         Index('idx_habit_date', 'habit_id', 'date'),
         Index('idx_completed_date', 'completed', 'date'),  # For analytics queries
         Index('idx_habit_completed', 'habit_id', 'completed'),  # For streak calculations
+        Index('idx_habit_date_completed', 'habit_id', 'date', 'completed'),  # Composite for performance
+        Index('idx_date_desc', 'date', postgresql_ops={'date': 'DESC'}),  # For recent queries
     )
     
     def __repr__(self) -> str:
@@ -110,12 +112,21 @@ class DatabaseConfig:
             database_url = database_url.replace("~/", f"{os.path.expanduser('~')}/")
             
         self.database_url = database_url
+        # SQLite specific optimizations
+        sqlite_connect_args = {
+            "check_same_thread": False,
+            # SQLite performance optimizations
+            "timeout": 20,
+            "isolation_level": None,  # Autocommit mode for better performance
+        }
+        
         self.engine = create_engine(
             database_url,
             echo=False,  # Set to True for SQL debugging
             # SQLite specific optimizations
             pool_pre_ping=True,
-            connect_args={"check_same_thread": False} if "sqlite" in database_url else {}
+            pool_recycle=3600,  # Recycle connections every hour
+            connect_args=sqlite_connect_args if "sqlite" in database_url else {}
         )
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
     

@@ -90,6 +90,14 @@ from .commands.analytics import (
     show_stats
 )
 
+# Import performance commands
+from .commands.performance import (
+    performance_profile,
+    performance_benchmark,
+    database_analyze,
+    memory_usage
+)
+
 # Add habit management commands directly to main app
 app.command("add")(add_habit)
 app.command("list")(list_habits)
@@ -104,6 +112,12 @@ app.command("today")(show_today)
 
 # Add analytics commands
 app.command("stats")(show_stats)
+
+# Add performance commands
+app.command("profile")(performance_profile)
+app.command("benchmark")(performance_benchmark)
+app.command("db-analyze")(database_analyze)
+app.command("memory")(memory_usage)
 
 
 if __name__ == "__main__":

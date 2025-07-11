@@ -22,16 +22,28 @@ def track_habit(
         None, 
         "--date", 
         "-d", 
-        help="Date to track (YYYY-MM-DD, 'today', 'yesterday', or relative like '-1d')"
+        help="Date to track (YYYY-MM-DD, 'today', 'yesterday', or relative like '-1d')",
+        show_default="today"
     ),
     notes: Optional[str] = typer.Option(
         None, 
         "--note", 
         "-n", 
-        help="Optional notes for this tracking entry"
+        help="Optional notes for this tracking entry (max 500 characters)"
     )
 ) -> None:
-    """Track a habit for a specific date (defaults to today)."""
+    """Track a habit as completed for a specific date.
+    
+    Mark a habit as completed for today or any past date. You can only track each
+    habit once per day. If you track the same habit/date again, it will update the notes.
+    
+    Examples:
+        habits track "Exercise"                    # Track for today
+        habits track "Read" --date yesterday       # Track for yesterday  
+        habits track "Gym" --date 2024-07-10      # Track for specific date
+        habits track "Run" --date -1d             # Track for 1 day ago
+        habits track "Yoga" --note "Great session!"  # Track with notes
+    """
     
     # Parse the date
     tracking_date = None
@@ -80,10 +92,20 @@ def untrack_habit(
         None,
         "--date",
         "-d",
-        help="Date to untrack (YYYY-MM-DD, 'today', 'yesterday', or relative like '-1d')"
+        help="Date to untrack (YYYY-MM-DD, 'today', 'yesterday', or relative like '-1d')",
+        show_default="today"
     )
 ) -> None:
-    """Remove tracking for a habit on a specific date (defaults to today)."""
+    """Remove tracking entry for a habit on a specific date.
+    
+    Removes a tracking entry, which will affect your streaks and statistics.
+    Use this if you accidentally tracked a habit or want to correct your record.
+    
+    Examples:
+        habits untrack "Exercise"                  # Untrack for today
+        habits untrack "Read" --date yesterday     # Untrack for yesterday
+        habits untrack "Gym" --date 2024-07-10    # Untrack for specific date
+    """
     
     # Parse the date
     tracking_date = None
@@ -123,7 +145,18 @@ def untrack_habit(
 
 
 def show_today() -> None:
-    """Show today's habit tracking status and progress."""
+    """Show today's habits and their completion status.
+    
+    Displays a comprehensive overview of all your active habits for today,
+    showing which ones you've completed and which ones are still pending.
+    Includes completion percentage and helpful next-step suggestions.
+    
+    This is perfect for your daily check-in to see your progress and
+    plan what habits you still need to complete today.
+    
+    Examples:
+        habits today                    # See today's progress
+    """
     
     result = TrackingService.get_today_status()
     
