@@ -69,29 +69,24 @@ def main(
         raise typer.Exit(1)
 
 
-# Add command groups (will be implemented in separate files)
-@app.command()
-def add(
-    name: str = typer.Argument(..., help="Name of the habit to add"),
-    frequency: str = typer.Option("daily", "--frequency", "-f", help="Habit frequency (daily, weekly, custom)"),
-    description: str = typer.Option("", "--description", "-d", help="Optional habit description"),
-):
-    """Add a new habit to track."""
-    console.print(f"[green]Adding habit: {name}[/green] (frequency: {frequency})")
-    if description:
-        console.print(f"Description: {description}")
-    # Implementation will be moved to commands/habits.py
+# Import habit commands and add them directly to main app
+from .commands.habits import (
+    add_habit,
+    list_habits, 
+    remove_habit,
+    delete_habit,
+    restore_habit
+)
+
+# Add habit management commands directly to main app
+app.command("add")(add_habit)
+app.command("list")(list_habits)
+app.command("remove")(remove_habit)
+app.command("delete")(delete_habit)
+app.command("restore")(restore_habit)
 
 
-@app.command()
-def list(
-    filter_type: str = typer.Option("active", "--filter", "-f", help="Filter habits (active, archived, all)"),
-):
-    """List all habits."""
-    console.print(f"[blue]Listing {filter_type} habits:[/blue]")
-    # Implementation will be moved to commands/habits.py
-
-
+# Placeholder commands for tracking and analytics (will be implemented in Phase 1B/1C)
 @app.command()
 def track(
     habit_name: str = typer.Argument(..., help="Name of the habit to track"),
@@ -99,19 +94,14 @@ def track(
     note: str = typer.Option("", "--note", "-n", help="Optional note about the tracking"),
 ):
     """Track completion of a habit."""
-    console.print(f"[green]Tracking habit: {habit_name}[/green]")
-    if date:
-        console.print(f"Date: {date}")
-    if note:
-        console.print(f"Note: {note}")
-    # Implementation will be moved to commands/tracking.py
+    console.print(f"[yellow]Track command not yet implemented - coming in Phase 1B[/yellow]")
+    console.print(f"Would track: {habit_name}")
 
 
 @app.command()
 def today():
     """Show today's habits and their completion status."""
-    console.print("[blue]Today's Habits:[/blue]")
-    # Implementation will be moved to commands/tracking.py
+    console.print("[yellow]Today command not yet implemented - coming in Phase 1B[/yellow]")
 
 
 @app.command()
@@ -120,43 +110,7 @@ def stats(
     period: str = typer.Option("all", "--period", "-p", help="Time period (week, month, year, all)"),
 ):
     """Show habit statistics and analytics."""
-    console.print(f"[blue]Statistics[/blue]")
-    if habit_name:
-        console.print(f"Habit: {habit_name}")
-    console.print(f"Period: {period}")
-    # Implementation will be moved to commands/analytics.py
-
-
-@app.command()
-def remove(
-    habit_name: str = typer.Argument(..., help="Name of the habit to remove"),
-):
-    """Remove (archive) a habit."""
-    confirm = typer.confirm(f"Are you sure you want to remove habit '{habit_name}'?")
-    if confirm:
-        console.print(f"[yellow]Removing habit: {habit_name}[/yellow]")
-        # Implementation will be moved to commands/habits.py
-    else:
-        console.print("Operation cancelled.")
-
-
-@app.command()
-def delete(
-    habit_name: str = typer.Argument(..., help="Name of the habit to permanently delete"),
-    confirm: bool = typer.Option(False, "--confirm", help="Skip confirmation prompt"),
-):
-    """Permanently delete a habit and all its data."""
-    if not confirm:
-        confirm = typer.confirm(
-            f"[red]WARNING:[/red] This will permanently delete habit '{habit_name}' "
-            f"and ALL its tracking data. This cannot be undone. Continue?"
-        )
-    
-    if confirm:
-        console.print(f"[red]Permanently deleting habit: {habit_name}[/red]")
-        # Implementation will be moved to commands/habits.py
-    else:
-        console.print("Operation cancelled.")
+    console.print("[yellow]Stats command not yet implemented - coming in Phase 1C[/yellow]")
 
 
 if __name__ == "__main__":

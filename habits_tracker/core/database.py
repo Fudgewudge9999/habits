@@ -2,6 +2,7 @@
 
 import os
 import shutil
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -23,9 +24,11 @@ class DatabaseManager:
         """
         if database_path:
             # Update global config with custom path
+            from sqlalchemy import create_engine
+            from sqlalchemy.orm import sessionmaker
             db_config.database_url = f"sqlite:///{database_path}"
-            db_config.engine = db_config.create_engine(db_config.database_url)
-            db_config.SessionLocal = db_config.sessionmaker(bind=db_config.engine)
+            db_config.engine = create_engine(db_config.database_url)
+            db_config.SessionLocal = sessionmaker(bind=db_config.engine)
     
     def get_database_path(self) -> str:
         """Get the current database file path."""
@@ -132,10 +135,23 @@ class DatabaseManager:
             True if database is accessible and intact
         """
         try:
-            with next(db_config.get_session()) as session:
-                # Try a simple query to test connectivity
-                session.execute("SELECT 1").fetchone()
+            session = db_config.SessionLocal()
+            try:
+                # Check if required tables exist
+                from sqlalchemy import inspect, text
+                inspector = inspect(session.bind)
+                tables = inspector.get_table_names()
+                
+                # Check for required tables
+                required_tables = ['habits', 'tracking_entries', 'config']
+                if not all(table in tables for table in required_tables):
+                    return False
+                
+                # Try a simple query on the habits table
+                session.execute(text("SELECT COUNT(*) FROM habits")).fetchone()
                 return True
+            finally:
+                session.close()
                 
         except SQLAlchemyError:
             return False
@@ -158,7 +174,7 @@ class DatabaseManager:
             return stats
             
         try:
-            with next(db_config.get_session()) as session:
+            with get_session() as session:
                 from .models import Habit, TrackingEntry
                 
                 stats["total_habits"] = session.query(Habit).count()
@@ -176,7 +192,8 @@ class DatabaseManager:
 db_manager = DatabaseManager()
 
 
-def get_session() -> Session:
+@contextmanager
+def get_session():
     """Get a database session (context manager friendly).
     
     Usage:
@@ -184,7 +201,11 @@ def get_session() -> Session:
             # Use session here
             pass
     """
-    return next(db_config.get_session())
+    session = db_config.SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
 
 
 def ensure_database() -> bool:
@@ -198,7 +219,7 @@ def ensure_database() -> bool:
         return db_manager.initialize_database(create_backup=False)
     
     if not db_manager.verify_database_integrity():
-        print("Database integrity check failed. Reinitializing...")
+        print("Database tables missing or corrupted. Reinitializing...")
         return db_manager.initialize_database(create_backup=True)
     
     return True

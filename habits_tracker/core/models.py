@@ -90,12 +90,18 @@ class Config(Base):
 class DatabaseConfig:
     """Database configuration and session management."""
     
-    def __init__(self, database_url: str = "sqlite:///~/.habits/habits.db"):
+    def __init__(self, database_url: str = None):
         """Initialize database configuration.
         
         Args:
             database_url: SQLAlchemy database URL
         """
+        # Set default database path if not provided
+        if database_url is None:
+            import os
+            db_dir = os.path.expanduser("~/.habits")
+            database_url = f"sqlite:///{db_dir}/habits.db"
+        
         # Expand user path for macOS
         if database_url.startswith("sqlite:///~/"):
             import os
