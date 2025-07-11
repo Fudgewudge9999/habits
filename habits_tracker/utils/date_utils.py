@@ -18,6 +18,31 @@ def get_now() -> datetime:
     return datetime.now(tzlocal())
 
 
+def parse_date(date_str: str) -> date:
+    """Parse a date string into a date object with error handling.
+    
+    Supports various formats:
+    - YYYY-MM-DD (ISO format)
+    - MM/DD/YYYY
+    - MM-DD-YYYY
+    - Relative dates: today, yesterday, tomorrow
+    - Relative offsets: -1d, +7d, etc.
+    
+    Args:
+        date_str: String representation of date
+        
+    Returns:
+        Parsed date object
+        
+    Raises:
+        ValueError: If date string cannot be parsed
+    """
+    result = parse_date_string(date_str)
+    if result is None:
+        raise ValueError(f"Unable to parse date: '{date_str}'. Use formats like 'YYYY-MM-DD', 'today', 'yesterday', or '-1d'")
+    return result
+
+
 def parse_date_string(date_str: str) -> Optional[date]:
     """Parse a date string into a date object.
     
@@ -48,8 +73,8 @@ def parse_date_string(date_str: str) -> Optional[date]:
     elif date_str == "tomorrow":
         return get_today() + timedelta(days=1)
     
-    # Handle relative day offsets (+N, -N)
-    offset_match = re.match(r'^([+-]?\d+)$', date_str)
+    # Handle relative day offsets (+N, -N, +Nd, -Nd)
+    offset_match = re.match(r'^([+-]?\d+)d?$', date_str)
     if offset_match:
         try:
             offset = int(offset_match.group(1))

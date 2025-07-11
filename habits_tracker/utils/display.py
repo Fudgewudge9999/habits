@@ -309,3 +309,72 @@ def show_panel(panel: Panel) -> None:
     console.print()
     console.print(panel)
     console.print()
+
+
+def create_success_panel(title: str, message: str, suggestion: str = "") -> Panel:
+    """Create a success panel with title, message, and optional suggestion.
+    
+    Args:
+        title: Panel title
+        message: Main success message
+        suggestion: Optional suggestion text
+        
+    Returns:
+        Rich Panel object styled for success
+    """
+    content = f"✅ {message}"
+    if suggestion:
+        content += f"\n\n[dim]💡 {suggestion}[/dim]"
+    
+    return Panel(
+        content,
+        title=f"[bold green]{title}[/bold green]",
+        border_style="green",
+        padding=(1, 2)
+    )
+
+
+def create_error_panel(title: str, error: str, suggestion: str = "") -> Panel:
+    """Create an error panel with title, error message, and optional suggestion.
+    
+    Args:
+        title: Panel title
+        error: Error message
+        suggestion: Optional suggestion text
+        
+    Returns:
+        Rich Panel object styled for errors
+    """
+    content = f"❌ {error}"
+    if suggestion:
+        content += f"\n\n[dim]💡 {suggestion}[/dim]"
+    
+    return Panel(
+        content,
+        title=f"[bold red]{title}[/bold red]",
+        border_style="red",
+        padding=(1, 2)
+    )
+
+
+def create_info_panel(title: str, message: str, suggestion: str = "") -> Panel:
+    """Create an info panel with title, message, and optional suggestion.
+    
+    Args:
+        title: Panel title
+        message: Info message
+        suggestion: Optional suggestion text
+        
+    Returns:
+        Rich Panel object styled for information
+    """
+    content = f"ℹ️ {message}"
+    if suggestion:
+        content += f"\n\n[dim]💡 {suggestion}[/dim]"
+    
+    return Panel(
+        content,
+        title=f"[bold blue]{title}[/bold blue]",
+        border_style="blue",
+        padding=(1, 2)
+    )
