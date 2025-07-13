@@ -89,7 +89,10 @@ from .commands.tracking import (
 
 # Import analytics commands
 from .commands.analytics import (
-    show_stats
+    show_stats,
+    show_chart,
+    show_progress,
+    generate_report
 )
 
 # Import performance commands
@@ -119,6 +122,9 @@ app.command("today")(show_today)
 
 # Add analytics commands
 app.command("stats")(show_stats)
+app.command("chart")(show_chart)
+app.command("progress")(show_progress)
+app.command("report")(generate_report)
 
 # Add performance commands
 app.command("profile")(performance_profile)
