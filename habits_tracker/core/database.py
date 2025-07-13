@@ -156,6 +156,15 @@ class DatabaseManager:
                     if not self.migrate_to_phase_2a():
                         return False
                 
+                # Check if Phase 2C migration is needed
+                phase_2c_tables = ['templates']
+                missing_2c_tables = [table for table in phase_2c_tables if table not in tables]
+                
+                if missing_2c_tables:
+                    # Run Phase 2C migration
+                    if not self.migrate_to_phase_2c():
+                        return False
+                
                 # Try a simple query on the habits table
                 session.execute(text("SELECT COUNT(*) FROM habits")).fetchone()
                 return True
@@ -203,6 +212,42 @@ class DatabaseManager:
             print(f"Unexpected error during Phase 2A migration: {e}")
             return False
     
+    def migrate_to_phase_2c(self) -> bool:
+        """Migrate database to Phase 2C schema (add templates table).
+        
+        Returns:
+            True if migration successful, False otherwise
+        """
+        try:
+            print("Running Phase 2C migration (adding templates table)...")
+            
+            # Create backup before migration
+            backup_path = self.create_backup("pre_phase_2c_migration")
+            if backup_path:
+                print(f"Backup created: {backup_path}")
+            
+            # Import new models to ensure they're registered
+            from .models import Template
+            
+            # Create only the new tables
+            session = db_config.SessionLocal()
+            try:
+                # Create templates table
+                Template.__table__.create(db_config.engine, checkfirst=True)
+                
+                print("Phase 2C migration completed successfully")
+                return True
+                
+            except SQLAlchemyError as e:
+                print(f"Phase 2C migration failed: {e}")
+                return False
+            finally:
+                session.close()
+                
+        except Exception as e:
+            print(f"Unexpected error during Phase 2C migration: {e}")
+            return False
+    
     def check_migration_status(self) -> dict:
         """Check which migrations have been applied.
         
@@ -212,6 +257,7 @@ class DatabaseManager:
         status = {
             "core_tables": False,
             "phase_2a_tables": False,
+            "phase_2c_tables": False,
             "missing_tables": []
         }
         
@@ -230,8 +276,12 @@ class DatabaseManager:
                 phase_2a_tables = ['categories', 'habit_categories', 'habit_history']
                 status["phase_2a_tables"] = all(table in tables for table in phase_2a_tables)
                 
+                # Check Phase 2C tables
+                phase_2c_tables = ['templates']
+                status["phase_2c_tables"] = all(table in tables for table in phase_2c_tables)
+                
                 # List missing tables
-                all_expected_tables = core_tables + phase_2a_tables
+                all_expected_tables = core_tables + phase_2a_tables + phase_2c_tables
                 status["missing_tables"] = [table for table in all_expected_tables if table not in tables]
                 
             finally:
@@ -273,6 +323,12 @@ class DatabaseManager:
                     from .models import Category, HabitHistory
                     stats["total_categories"] = session.query(Category).count()
                     stats["total_history_entries"] = session.query(HabitHistory).count()
+                
+                # Add Phase 2C statistics if tables exist
+                if migration_status["phase_2c_tables"]:
+                    from .models import Template
+                    stats["total_templates"] = session.query(Template).count()
+                    stats["predefined_templates"] = session.query(Template).filter(Template.is_predefined == True).count()
                 
         except SQLAlchemyError:
             # Database exists but might be corrupted

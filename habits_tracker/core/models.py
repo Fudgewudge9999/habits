@@ -163,6 +163,30 @@ class HabitHistory(Base):
         return f"<HabitHistory(habit_id={self.habit_id}, field='{self.field_name}', type='{self.change_type}')>"
 
 
+class Template(Base):
+    """Template model for habit templates and quick creation."""
+    
+    __tablename__ = "templates"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    description = Column(Text)
+    template_data = Column(Text, nullable=False)  # JSON data for habits
+    category = Column(String(50), index=True)  # template category (health, productivity, etc)
+    is_predefined = Column(Boolean, default=False, nullable=False)  # system vs user templates
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_template_category', 'category'),
+        Index('idx_template_predefined', 'is_predefined'),
+        Index('idx_template_name', 'name'),
+    )
+    
+    def __repr__(self) -> str:
+        return f"<Template(id={self.id}, name='{self.name}', category='{self.category}')>"
+
+
 # Database configuration and session factory
 class DatabaseConfig:
     """Database configuration and session management."""

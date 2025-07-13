@@ -106,6 +106,18 @@ from .commands.performance import (
 # Import category commands
 from .commands.categories import app as categories_app
 
+# Import template commands
+from .commands.templates import app as templates_app
+
+# Import data management commands
+from .commands.data import (
+    export_data,
+    import_data,
+    backup_database,
+    restore_database,
+    list_backups
+)
+
 # Add habit management commands directly to main app
 app.command("add")(add_habit)
 app.command("list")(list_habits)
@@ -134,6 +146,16 @@ app.command("memory")(memory_usage)
 
 # Add category management as a subcommand group
 app.add_typer(categories_app, name="categories")
+
+# Add template management as a subcommand group
+app.add_typer(templates_app, name="template")
+
+# Add data management commands
+app.command("export")(export_data)
+app.command("import")(import_data)
+app.command("backup")(backup_database)
+app.command("restore")(restore_database)
+app.command("list-backups")(list_backups)
 
 
 if __name__ == "__main__":

@@ -376,6 +376,163 @@ habits today
 
 ---
 
+### `habits edit` - Edit Habit Properties
+
+Modify existing habit properties like name, frequency, description, and categories.
+
+**Syntax:**
+```bash
+habits edit <name> [options]
+```
+
+**Arguments:**
+- `name` (required): Name of the habit to edit
+
+**Options:**
+| Option | Type | Description |
+|--------|------|-------------|
+| `--name` | string | New habit name |
+| `--frequency` | string | New frequency (daily, weekly, custom) |
+| `--description` | string | New description |
+
+**Examples:**
+```bash
+# Interactive editing session
+habits edit "Exercise"
+
+# Direct property changes
+habits edit "Exercise" --name "Morning Workout"
+habits edit "Read" --frequency weekly
+habits edit "Meditate" --description "15 minutes mindfulness practice"
+```
+
+**Behavior:**
+- Interactive mode if no options provided
+- Shows preview of changes before applying
+- Validates all changes before saving
+- Creates audit trail entry
+
+**Success Output:**
+```
+✅ Habit 'Exercise' updated successfully!
+📝 Changes: name → 'Morning Workout'
+🎯 Track it with: habits track "Morning Workout"
+```
+
+---
+
+### `habits history` - View Habit Modification History
+
+Show the complete modification history for a habit.
+
+**Syntax:**
+```bash
+habits history <name>
+```
+
+**Arguments:**
+- `name` (required): Name of the habit
+
+**Examples:**
+```bash
+habits history "Exercise"
+```
+
+**Example Output:**
+```
+📜 Modification History - Exercise
+
+┌────────────────────┬─────────────┬─────────────┬─────────────┐
+│ Date               │ Change Type │ Field       │ Change      │
+├────────────────────┼─────────────┼─────────────┼─────────────┤
+│ 2024-07-13 10:30   │ update      │ name        │ Exercise →  │
+│                    │             │             │ Workout     │
+│ 2024-07-12 09:15   │ update      │ description │ Added desc  │
+│ 2024-07-10 08:00   │ create      │ habit       │ Created     │
+└────────────────────┴─────────────┴─────────────┴─────────────┘
+
+📊 Total modifications: 3
+```
+
+---
+
+## 🏷️ Category Management Commands
+
+### `habits categories list` - List All Categories
+
+Display all habit categories with their details.
+
+**Syntax:**
+```bash
+habits categories list
+```
+
+**Example Output:**
+```
+                    Habit Categories                     
+┌─────────────┬───────────┬──────────────────┬─────────┐
+│ Name        │ Color     │ Description      │ Habits  │
+├─────────────┼───────────┼──────────────────┼─────────┤
+│ Health      │ ■ #00FF00 │ Health habits    │ 3       │
+│ Work        │ ■ #0066FF │ Work habits      │ 2       │
+│ Personal    │ ■ #FF6600 │ Personal habits  │ 4       │
+└─────────────┴───────────┴──────────────────┴─────────┘
+```
+
+---
+
+### `habits categories add` - Create New Category
+
+Add a new habit category.
+
+**Syntax:**
+```bash
+habits categories add <name> [options]
+```
+
+**Arguments:**
+- `name` (required): Category name
+
+**Options:**
+| Option | Short | Type | Description |
+|--------|-------|------|-------------|
+| `--description` | `-d` | string | Category description |
+| `--color` | `-c` | string | Hex color code (e.g., #FF0000) |
+
+**Examples:**
+```bash
+habits categories add "Health"
+habits categories add "Fitness" --description "Physical health habits" --color "#00FF00"
+```
+
+---
+
+### `habits categories assign` - Assign Category to Habit
+
+Assign a category to an existing habit.
+
+**Syntax:**
+```bash
+habits categories assign <habit_name> <category_name>
+```
+
+**Examples:**
+```bash
+habits categories assign "Exercise" "Health"
+habits categories assign "Read" "Personal"
+```
+
+---
+
+### Other Category Commands
+
+- `habits categories remove <name>` - Remove category
+- `habits categories rename <old_name> <new_name>` - Rename category
+- `habits categories unassign <habit_name> <category_name>` - Remove category from habit
+- `habits categories show <name>` - Show category details
+
+---
+
 ## 📊 Analytics Commands
 
 ### `habits stats` - View Statistics
@@ -475,6 +632,522 @@ habits stats --habit "Exercise"
 🎉 Excellent! You're in the top 20% of performers
 💪 Keep up the momentum - you're on a great streak!
 ```
+
+---
+
+### `habits chart` - Visual Habit Charts
+
+Display visual charts and heatmaps for habit tracking patterns.
+
+**Syntax:**
+```bash
+habits chart <name> [options]
+```
+
+**Arguments:**
+- `name` (required): Habit name to chart
+
+**Options:**
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--period` | `-p` | string | `month` | Time period: week, month, year |
+| `--style` | `-s` | string | `calendar` | Chart style: calendar, heatmap, simple |
+
+**Examples:**
+```bash
+# Monthly calendar view (default)
+habits chart "Exercise"
+
+# GitHub-style heatmap
+habits chart "Exercise" --style heatmap
+
+# Weekly simple chart
+habits chart "Exercise" --period week --style simple
+
+# Yearly overview
+habits chart "Exercise" --period year
+```
+
+**Example Output:**
+```
+📊 Exercise - Monthly Calendar (July 2024)
+
+    S  M  T  W  T  F  S
+       1  2  3  4  5  6
+    ✅ ✅ ❌ ✅ ✅ ✅ ✅
+ 7  ✅ ✅ ✅ ❌ ✅ ✅ ✅
+14  ✅ ✅ ✅ ✅ ✅ ❌ ✅
+21  ✅ ✅ ✅ ✅ ✅ ✅ ✅
+28  ✅ ✅ ✅
+
+📈 Completion: 26/30 (86.7%)
+🔥 Current streak: 7 days
+```
+
+---
+
+### `habits progress` - Progress Visualization
+
+Show progress bars and trend analysis for your habits.
+
+**Syntax:**
+```bash
+habits progress [options]
+```
+
+**Options:**
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--period` | `-p` | string | `week` | Time period: week, month, year |
+| `--habits` | `-h` | list | None | Specific habits to show |
+| `--all` | | flag | False | Show all habits |
+
+**Examples:**
+```bash
+# Weekly progress for all habits
+habits progress
+
+# Monthly progress for specific habits
+habits progress --period month --habits "Exercise" "Read"
+
+# All habits progress
+habits progress --all
+
+# Yearly overview
+habits progress --period year
+```
+
+**Example Output:**
+```
+📊 Habit Progress - This Week
+
+Exercise     ████████░░ 80% (5/7 days) 📈
+Read         ██████████ 100% (7/7 days) 🎯
+Meditate     ██████░░░░ 60% (4/7 days) 📉
+Journal      ████░░░░░░ 40% (3/7 days) 📉
+
+📈 Trends:
+• Exercise: +20% vs last week
+• Read: Consistent 100%
+• Meditate: -10% vs last week
+• Journal: -30% vs last week
+
+🎯 Overall completion: 68% (19/28 total)
+💡 Focus areas: Journal, Meditate
+```
+
+---
+
+### `habits report` - Comprehensive Reports
+
+Generate detailed reports in multiple formats.
+
+**Syntax:**
+```bash
+habits report [options]
+```
+
+**Options:**
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--format` | `-f` | string | `table` | Format: table, json, csv, markdown |
+| `--output` | `-o` | string | None | Output file path |
+| `--period` | `-p` | string | `month` | Time period: week, month, year, all |
+
+**Examples:**
+```bash
+# Terminal table report
+habits report
+
+# Save CSV report
+habits report --format csv --output monthly_report.csv
+
+# Markdown report
+habits report --format markdown --output report.md
+
+# Yearly JSON report
+habits report --format json --period year --output yearly.json
+```
+
+**Example Output:**
+```
+📊 Habit Performance Report - July 2024
+
+Overall Statistics:
+┌─────────────────┬─────────────┐
+│ Metric          │ Value       │
+├─────────────────┼─────────────┤
+│ Active Habits   │ 4           │
+│ Total Days      │ 31          │
+│ Total Possible  │ 124         │
+│ Total Completed │ 89          │
+│ Success Rate    │ 71.8%       │
+└─────────────────┴─────────────┘
+
+Individual Performance:
+┌────────────┬─────────────┬─────────────┬─────────────┐
+│ Habit      │ Completed   │ Success %   │ Streak      │
+├────────────┼─────────────┼─────────────┼─────────────┤
+│ Exercise   │ 26/31       │ 83.9%       │ 🔥 7        │
+│ Read       │ 28/31       │ 90.3%       │ ⭐ 15       │
+│ Meditate   │ 22/31       │ 71.0%       │ 🔥 3        │
+│ Journal    │ 13/31       │ 41.9%       │ 0           │
+└────────────┴─────────────┴─────────────┴─────────────┘
+```
+
+---
+
+## 💾 Data Management Commands
+
+### `habits export` - Export Habit Data
+
+Export your habit data in various formats for backup or analysis.
+
+**Syntax:**
+```bash
+habits export [options]
+```
+
+**Options:**
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--format` | `-f` | string | `json` | Export format: json, csv, markdown |
+| `--output` | `-o` | string | None | Output file path |
+| `--habits` | `-h` | list | None | Specific habits to export |
+| `--start-date` | `-s` | string | None | Start date filter |
+| `--end-date` | `-e` | string | None | End date filter |
+| `--categories/--no-categories` | | flag | True | Include categories |
+| `--history/--no-history` | | flag | False | Include modification history |
+| `--preview` | `-p` | flag | False | Preview without exporting |
+
+**Examples:**
+```bash
+# Export all data to JSON
+habits export --output backup.json
+
+# Export specific habits to CSV
+habits export --format csv --habits "Exercise" "Read" --output habits.csv
+
+# Export date range
+habits export --start-date "2024-07-01" --end-date "2024-07-31"
+
+# Preview export
+habits export --format markdown --preview
+```
+
+---
+
+### `habits import` - Import Habit Data
+
+Import habit data from files with intelligent validation and conflict resolution.
+
+**Syntax:**
+```bash
+habits import <file_path> [options]
+```
+
+**Arguments:**
+- `file_path` (required): Path to file to import
+
+**Options:**
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--format` | `-f` | string | auto | Import format: json, csv (auto-detected) |
+| `--mode` | `-m` | string | `merge` | Import mode: merge, replace, append |
+| `--preview` | `-p` | flag | False | Preview without importing |
+| `--backup/--no-backup` | | flag | True | Create backup before import |
+
+**Import Modes:**
+- `merge`: Add new items, skip existing ones
+- `replace`: Update existing items with imported data
+- `append`: Add all items, potentially creating duplicates
+
+**Examples:**
+```bash
+# Import with preview
+habits import backup.json --preview
+
+# Import with replace mode
+habits import data.csv --mode replace
+
+# Import without backup
+habits import habits.json --no-backup
+```
+
+---
+
+### `habits backup` - Create Database Backup
+
+Create a complete backup of your habits database.
+
+**Syntax:**
+```bash
+habits backup [options]
+```
+
+**Options:**
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--output` | `-o` | string | auto | Backup file path |
+| `--compress` | `-c` | flag | False | Compress backup file |
+| `--verify/--no-verify` | | flag | True | Verify backup integrity |
+
+**Examples:**
+```bash
+# Simple backup
+habits backup
+
+# Compressed backup
+habits backup --compress
+
+# Custom output location
+habits backup --output /path/to/my_backup.db
+
+# Backup without verification
+habits backup --no-verify --compress
+```
+
+---
+
+### `habits restore` - Restore from Backup
+
+Restore your database from a backup file.
+
+**Syntax:**
+```bash
+habits restore <backup_file> [options]
+```
+
+**Arguments:**
+- `backup_file` (required): Path to backup file
+
+**Options:**
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--verify/--no-verify` | flag | True | Verify backup before restore |
+| `--force` | flag | False | Skip confirmation prompt |
+| `--backup/--no-backup` | flag | True | Backup current data before restore |
+
+**Examples:**
+```bash
+# Restore with confirmation
+habits restore backup_20240713.db
+
+# Force restore without prompts
+habits restore old_backup.db --force
+
+# Restore without backup
+habits restore backup.db --no-backup
+```
+
+---
+
+### `habits list-backups` - List Available Backups
+
+Show all available backup files.
+
+**Syntax:**
+```bash
+habits list-backups [options]
+```
+
+**Options:**
+| Option | Short | Type | Description |
+|--------|-------|------|-------------|
+| `--dir` | `-d` | string | Custom backup directory |
+
+**Example Output:**
+```
+Available Backups
+┌─────────────────────────────┬─────────────┬────────────┬─────────────────────┐
+│ Name                        │ Size        │ Compressed │ Created             │
+├─────────────────────────────┼─────────────┼────────────┼─────────────────────┤
+│ habits_backup_20240713.db   │ 127,976 B   │ No         │ 2024-07-13 21:38:31 │
+│ habits_backup_20240712.db.gz│ 4,184 B     │ Yes        │ 2024-07-12 18:22:15 │
+└─────────────────────────────┴─────────────┴────────────┴─────────────────────┘
+
+Total backups found: 2
+```
+
+---
+
+## 📋 Template Management Commands
+
+### `habits template list` - List Available Templates
+
+Display all habit templates with their categories and descriptions.
+
+**Syntax:**
+```bash
+habits template list [options]
+```
+
+**Options:**
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--category` | `-c` | string | None | Filter by category |
+| `--predefined/--no-predefined` | | flag | True | Include predefined templates |
+| `--user/--no-user` | | flag | True | Include user templates |
+
+**Examples:**
+```bash
+# List all templates
+habits template list
+
+# List health templates only
+habits template list --category health
+
+# List only user-created templates
+habits template list --no-predefined
+```
+
+**Example Output:**
+```
+Available Templates
+┌─────────────────┬──────────────┬────────────┬─────────────────────────────┐
+│ Name            │ Category     │ Type       │ Description                 │
+├─────────────────┼──────────────┼────────────┼─────────────────────────────┤
+│ Daily Exercise  │ health       │ Predefined │ 30 minutes of physical      │
+│                 │              │            │ activity                    │
+│ Deep Work       │ productivity │ Predefined │ Focused productivity habits │
+│ Mindfulness     │ personal     │ Predefined │ Mental wellness and         │
+│                 │              │            │ mindfulness                 │
+└─────────────────┴──────────────┴────────────┴─────────────────────────────┘
+```
+
+---
+
+### `habits template show` - Show Template Details
+
+Display detailed information about a specific template.
+
+**Syntax:**
+```bash
+habits template show <name>
+```
+
+**Arguments:**
+- `name` (required): Template name
+
+**Examples:**
+```bash
+habits template show "Daily Exercise"
+habits template show "Deep Work"
+```
+
+**Example Output:**
+```
+Template: Daily Exercise
+30 minutes of physical activity
+
+Category:  health
+Type:      Predefined
+Habits:    3
+Created:   2024-07-13 20:46:14
+
+Habits in this template:
+┌─────────────────┬───────────┬─────────────────────────────┐
+│ Name            │ Frequency │ Description                 │
+├─────────────────┼───────────┼─────────────────────────────┤
+│ Morning Workout │ daily     │ 30 min exercise routine     │
+│ 10k Steps       │ daily     │ Walk 10,000 steps daily     │
+│ Stretch         │ daily     │ 10 min stretching routine   │
+└─────────────────┴───────────┴─────────────────────────────┘
+```
+
+---
+
+### `habits template apply` - Apply Template
+
+Create habits from a template.
+
+**Syntax:**
+```bash
+habits template apply <name> [options]
+```
+
+**Arguments:**
+- `name` (required): Template name
+
+**Options:**
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--category` | `-c` | string | None | Category for created habits |
+| `--force` | | flag | False | Create even if habits exist |
+| `--preview` | `-p` | flag | False | Preview without creating |
+
+**Examples:**
+```bash
+# Apply template
+habits template apply "Daily Exercise"
+
+# Apply with category
+habits template apply "Deep Work" --category "Productivity"
+
+# Preview template application
+habits template apply "Mindfulness" --preview
+```
+
+---
+
+### `habits template create` - Create New Template
+
+Create a custom habit template.
+
+**Syntax:**
+```bash
+habits template create <name> [options]
+```
+
+**Arguments:**
+- `name` (required): Template name
+
+**Options:**
+| Option | Short | Type | Description |
+|--------|-------|------|-------------|
+| `--description` | `-d` | string | Template description |
+| `--category` | `-c` | string | Template category |
+| `--from-habits` | `-h` | list | Create from existing habits |
+
+**Examples:**
+```bash
+# Create empty template
+habits template create "My Routine"
+
+# Create from existing habits
+habits template create "Workout Set" --from-habits "Exercise" "Stretch"
+
+# Create with full details
+habits template create "Health Pack" --category health --description "Complete health routine"
+```
+
+---
+
+### `habits template init` - Initialize Predefined Templates
+
+Initialize all predefined template collections.
+
+**Syntax:**
+```bash
+habits template init
+```
+
+**Behavior:**
+- Creates 11 predefined templates across 4 categories
+- Safe to run multiple times
+- Skips existing templates
+
+**Template Categories:**
+- **Health**: Daily Exercise, Healthy Eating, Sleep Hygiene
+- **Productivity**: Deep Work, Learning & Growth, Task Management
+- **Personal**: Mindfulness, Self-Care, Creativity
+- **Wellness**: Mental Health, Social Connection
+
+---
+
+### Other Template Commands
+
+- `habits template delete <name>` - Delete user template (requires confirmation)
 
 ---
 
@@ -732,6 +1405,24 @@ habits today                      # Today's overview
 habits stats                      # View statistics
 ```
 
+### Advanced Features (Phase 2+)
+```bash
+habits edit "Habit"               # Edit habit properties
+habits chart "Habit"              # Visual charts
+habits export --format json       # Export data
+habits backup --compress          # Create backup
+habits template list              # List templates
+habits categories list            # List categories
+```
+
+### Data Management
+```bash
+habits export --output backup.json        # Export to file
+habits import backup.json --preview       # Import with preview
+habits backup --compress                  # Create compressed backup
+habits template apply "Daily Exercise"    # Apply template
+```
+
 ### Common Options
 ```bash
 --date yesterday                  # Yesterday
@@ -739,7 +1430,17 @@ habits stats                      # View statistics
 --note "Some note"               # Add note
 --filter all                     # Show all habits
 --period week                    # Weekly stats
+--preview                        # Preview operation
+--format json                    # Output format
 ```
+
+### Complete Command List
+**Core Commands:** add, list, remove, delete, restore, edit, history, track, untrack, today
+**Analytics:** stats, chart, progress, report
+**Categories:** categories (list, add, remove, assign, etc.)
+**Data Management:** export, import, backup, restore, list-backups
+**Templates:** template (list, show, apply, create, init, delete)
+**Performance:** profile, benchmark, db-analyze, memory
 
 ### Keyboard Shortcuts in Terminal
 - `Ctrl+C`: Cancel current command
