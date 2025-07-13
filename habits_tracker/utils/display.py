@@ -10,6 +10,7 @@ from rich.text import Text
 from rich.align import Align
 from rich import box
 from rich.style import Style
+from rich.status import Status
 
 # Create a global console instance
 console = Console()
@@ -46,12 +47,13 @@ def print_info(message: str) -> None:
     console.print(f"ℹ️  {message}", style=Colors.PRIMARY)
 
 
-def create_habits_table(habits: List[Dict[str, Any]]) -> Table:
+def create_habits_table(habits: List[Dict[str, Any]], show_categories: bool = False) -> Table:
     """Create a formatted table for displaying habits.
     
     Args:
         habits: List of habit dictionaries with keys:
                 name, description, frequency, streak, last_tracked, active
+        show_categories: Whether to include categories column
     
     Returns:
         Rich Table object
@@ -65,6 +67,10 @@ def create_habits_table(habits: List[Dict[str, Any]]) -> Table:
     
     table.add_column("Habit", style="bold", no_wrap=True, min_width=20)
     table.add_column("Frequency", justify="center", style=Colors.ACCENT, min_width=10)
+    
+    if show_categories:
+        table.add_column("Categories", justify="left", style="cyan", min_width=12)
+    
     table.add_column("Streak", justify="center", style=Colors.STREAK, min_width=8)
     table.add_column("Last Tracked", justify="center", style=Colors.MUTED, min_width=12)
     table.add_column("Status", justify="center", min_width=8)
@@ -100,27 +106,98 @@ def create_habits_table(habits: List[Dict[str, Any]]) -> Table:
         else:
             last_display = "Never"
         
+        # Format categories if showing them
+        categories_display = ""
+        if show_categories:
+            categories_display = _format_habit_categories(habit.get("id"))
+        
         # Format status
         if habit.get("active", True):
             status = Text("✅ Active", style=Colors.SUCCESS)
         else:
             status = Text("📦 Archived", style=Colors.MUTED)
         
-        table.add_row(
-            habit_display,
-            frequency,
-            streak_display,
-            last_display,
-            status
-        )
+        # Build row data based on whether categories are shown
+        if show_categories:
+            table.add_row(
+                habit_display,
+                frequency,
+                categories_display,
+                streak_display,
+                last_display,
+                status
+            )
+        else:
+            table.add_row(
+                habit_display,
+                frequency,
+                streak_display,
+                last_display,
+                status
+            )
     
     if not habits:
+        # Adjust empty row based on number of columns
+        empty_cols = 5 if not show_categories else 6
         table.add_row(
             Text("No habits found", style="dim italic"),
-            "", "", "", ""
+            *[""] * (empty_cols - 1)
         )
     
     return table
+
+
+def _format_habit_categories(habit_id: Optional[int]) -> str:
+    """Format categories for a habit in the table display.
+    
+    Args:
+        habit_id: ID of the habit
+        
+    Returns:
+        Formatted categories string
+    """
+    if not habit_id:
+        return "[dim](none)[/dim]"
+    
+    try:
+        # Import here to avoid circular imports
+        from ..core.services.category_service import CategoryService
+        from ..core.services.habit_service import HabitService
+        
+        # Get habit by ID to get name, then get categories
+        # This is a bit inefficient but works with current architecture
+        with console.status("Loading categories...", spinner="dots"):
+            from ..core.database import get_session
+            from ..core.models import Habit
+            
+            with get_session() as session:
+                habit = session.query(Habit).filter(Habit.id == habit_id).first()
+                if not habit:
+                    return "[dim](error)[/dim]"
+                
+                categories = CategoryService.get_habit_categories(habit.name)
+                
+                if not categories:
+                    return "[dim](none)[/dim]"
+                
+                # Format categories with colors if available
+                formatted_cats = []
+                for cat in categories[:3]:  # Limit to 3 categories for display
+                    if cat.get("color"):
+                        formatted_cats.append(f"[{cat['color']}]●[/{cat['color']}] {cat['name']}")
+                    else:
+                        formatted_cats.append(f"🏷️ {cat['name']}")
+                
+                result = ", ".join(formatted_cats)
+                
+                # Add indicator if more categories exist
+                if len(categories) > 3:
+                    result += f" [dim]+{len(categories) - 3} more[/dim]"
+                
+                return result
+                
+    except Exception:
+        return "[dim](error)[/dim]"
 
 
 def create_stats_panel(stats: Dict[str, Any]) -> Panel:

@@ -75,7 +75,9 @@ from .commands.habits import (
     list_habits, 
     remove_habit,
     delete_habit,
-    restore_habit
+    restore_habit,
+    edit_habit,
+    show_habit_history
 )
 
 # Import tracking commands
@@ -98,12 +100,17 @@ from .commands.performance import (
     memory_usage
 )
 
+# Import category commands
+from .commands.categories import app as categories_app
+
 # Add habit management commands directly to main app
 app.command("add")(add_habit)
 app.command("list")(list_habits)
 app.command("remove")(remove_habit)
 app.command("delete")(delete_habit)
 app.command("restore")(restore_habit)
+app.command("edit")(edit_habit)
+app.command("history")(show_habit_history)
 
 # Add tracking commands
 app.command("track")(track_habit)
@@ -118,6 +125,9 @@ app.command("profile")(performance_profile)
 app.command("benchmark")(performance_benchmark)
 app.command("db-analyze")(database_analyze)
 app.command("memory")(memory_usage)
+
+# Add category management as a subcommand group
+app.add_typer(categories_app, name="categories")
 
 
 if __name__ == "__main__":

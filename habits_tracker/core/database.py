@@ -142,10 +142,19 @@ class DatabaseManager:
                 inspector = inspect(session.bind)
                 tables = inspector.get_table_names()
                 
-                # Check for required tables
+                # Check for required core tables
                 required_tables = ['habits', 'tracking_entries', 'config']
                 if not all(table in tables for table in required_tables):
                     return False
+                
+                # Check if Phase 2A migration is needed
+                phase_2a_tables = ['categories', 'habit_categories', 'habit_history']
+                missing_2a_tables = [table for table in phase_2a_tables if table not in tables]
+                
+                if missing_2a_tables:
+                    # Run Phase 2A migration
+                    if not self.migrate_to_phase_2a():
+                        return False
                 
                 # Try a simple query on the habits table
                 session.execute(text("SELECT COUNT(*) FROM habits")).fetchone()
@@ -155,6 +164,83 @@ class DatabaseManager:
                 
         except SQLAlchemyError:
             return False
+    
+    def migrate_to_phase_2a(self) -> bool:
+        """Migrate database to Phase 2A schema (add new tables).
+        
+        Returns:
+            True if migration successful, False otherwise
+        """
+        try:
+            print("Running Phase 2A migration (adding new tables)...")
+            
+            # Create backup before migration
+            backup_path = self.create_backup("pre_phase_2a_migration")
+            if backup_path:
+                print(f"Backup created: {backup_path}")
+            
+            # Import new models to ensure they're registered
+            from .models import Category, HabitHistory, habit_categories
+            
+            # Create only the new tables
+            session = db_config.SessionLocal()
+            try:
+                # Create new tables
+                Category.__table__.create(db_config.engine, checkfirst=True)
+                HabitHistory.__table__.create(db_config.engine, checkfirst=True)
+                habit_categories.create(db_config.engine, checkfirst=True)
+                
+                print("Phase 2A migration completed successfully")
+                return True
+                
+            except SQLAlchemyError as e:
+                print(f"Phase 2A migration failed: {e}")
+                return False
+            finally:
+                session.close()
+                
+        except Exception as e:
+            print(f"Unexpected error during Phase 2A migration: {e}")
+            return False
+    
+    def check_migration_status(self) -> dict:
+        """Check which migrations have been applied.
+        
+        Returns:
+            Dictionary with migration status
+        """
+        status = {
+            "core_tables": False,
+            "phase_2a_tables": False,
+            "missing_tables": []
+        }
+        
+        try:
+            session = db_config.SessionLocal()
+            try:
+                from sqlalchemy import inspect
+                inspector = inspect(session.bind)
+                tables = inspector.get_table_names()
+                
+                # Check core tables
+                core_tables = ['habits', 'tracking_entries', 'config']
+                status["core_tables"] = all(table in tables for table in core_tables)
+                
+                # Check Phase 2A tables
+                phase_2a_tables = ['categories', 'habit_categories', 'habit_history']
+                status["phase_2a_tables"] = all(table in tables for table in phase_2a_tables)
+                
+                # List missing tables
+                all_expected_tables = core_tables + phase_2a_tables
+                status["missing_tables"] = [table for table in all_expected_tables if table not in tables]
+                
+            finally:
+                session.close()
+                
+        except SQLAlchemyError:
+            status["error"] = "Database connectivity issues"
+            
+        return status
     
     def get_database_stats(self) -> dict:
         """Get basic database statistics.
@@ -180,6 +266,13 @@ class DatabaseManager:
                 stats["total_habits"] = session.query(Habit).count()
                 stats["active_habits"] = session.query(Habit).filter(Habit.active == True).count()
                 stats["total_entries"] = session.query(TrackingEntry).count()
+                
+                # Add Phase 2A statistics if tables exist
+                migration_status = self.check_migration_status()
+                if migration_status["phase_2a_tables"]:
+                    from .models import Category, HabitHistory
+                    stats["total_categories"] = session.query(Category).count()
+                    stats["total_history_entries"] = session.query(HabitHistory).count()
                 
         except SQLAlchemyError:
             # Database exists but might be corrupted

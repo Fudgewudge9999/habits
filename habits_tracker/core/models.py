@@ -4,13 +4,25 @@ from datetime import datetime, date
 from typing import Optional, List
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean, DateTime, Date, 
-    ForeignKey, UniqueConstraint, Index, create_engine
+    ForeignKey, UniqueConstraint, Index, Table, create_engine
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import func
 
 Base = declarative_base()
+
+
+# Association table for many-to-many relationship between habits and categories
+habit_categories = Table(
+    'habit_categories',
+    Base.metadata,
+    Column('habit_id', Integer, ForeignKey('habits.id'), primary_key=True),
+    Column('category_id', Integer, ForeignKey('categories.id'), primary_key=True),
+    Column('assigned_at', DateTime, default=func.now(), nullable=False),
+    Index('idx_habit_categories_habit', 'habit_id'),
+    Index('idx_habit_categories_category', 'category_id')
+)
 
 
 class Habit(Base):
@@ -32,6 +44,17 @@ class Habit(Base):
         "TrackingEntry", 
         back_populates="habit", 
         cascade="all, delete-orphan"
+    )
+    categories = relationship(
+        "Category",
+        secondary=habit_categories,
+        back_populates="habits"
+    )
+    history_entries = relationship(
+        "HabitHistory",
+        back_populates="habit",
+        cascade="all, delete-orphan",
+        order_by="HabitHistory.changed_at.desc()"
     )
     
     def __repr__(self) -> str:
@@ -88,6 +111,56 @@ class Config(Base):
     
     def __repr__(self) -> str:
         return f"<Config(key='{self.key}', value='{self.value}')>"
+
+
+class Category(Base):
+    """Category model for organizing habits."""
+    
+    __tablename__ = "categories"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    color = Column(String(20))  # Hex color code for display
+    description = Column(Text)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    
+    # Relationships
+    habits = relationship(
+        "Habit",
+        secondary=habit_categories,
+        back_populates="categories"
+    )
+    
+    def __repr__(self) -> str:
+        return f"<Category(id={self.id}, name='{self.name}')>"
+
+
+class HabitHistory(Base):
+    """Habit modification history for audit trail."""
+    
+    __tablename__ = "habit_history"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    habit_id = Column(Integer, ForeignKey("habits.id"), nullable=False, index=True)
+    field_name = Column(String(50), nullable=False)
+    old_value = Column(Text)
+    new_value = Column(Text)
+    change_type = Column(String(20), nullable=False)  # create, update, delete, archive, restore
+    changed_at = Column(DateTime, default=func.now(), nullable=False)
+    
+    # Relationships
+    habit = relationship("Habit", back_populates="history_entries")
+    
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_habit_history_habit_id', 'habit_id'),
+        Index('idx_habit_history_changed_at', 'changed_at'),
+        Index('idx_habit_history_change_type', 'change_type'),
+        Index('idx_habit_history_field', 'field_name'),
+    )
+    
+    def __repr__(self) -> str:
+        return f"<HabitHistory(habit_id={self.habit_id}, field='{self.field_name}', type='{self.change_type}')>"
 
 
 # Database configuration and session factory
